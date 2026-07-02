@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Kebpro tesztdokumentum generátor</title>
+  <link rel="icon" type="image/png" href="assets/logoforsearchbar.png">
+  <link rel="apple-touch-icon" href="assets/logoforsearchbar.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <section id="loginScreen" class="login-screen" aria-label="Belépés">
+    <form id="loginForm" class="login-box">
+      <img class="login-logo" src="assets/logo.png" alt="Kebpro">
+      <h1>Kebpro tesztdokumentum generátor</h1>
+      <p>Add meg a jelszót a belépéshez.</p>
+      <label>
+        Jelszó
+        <input id="passwordInput" type="password" autocomplete="current-password" autofocus>
+      </label>
+      <button type="submit">Belépés</button>
+      <p id="loginError" class="login-error" role="alert" hidden>Hibás jelszó.</p>
+    </form>
+  </section>
+
+  <main class="app-shell">
+    <section class="controls" aria-label="Generátor vezérlők">
+      <div class="brand-block">
+        <img class="brand-logo" src="assets/logo.png" alt="Kebpro">
+        <div>
+          <h1>Kebpro tesztdokumentum generátor</h1>
+          <p>Válassz dokumentumtípust, generálj véletlen tesztadatot, majd nyomtasd vagy töltsd le.</p>
+        </div>
+      </div>
+
+      <div class="control-grid">
+        <label>
+          Dokumentumtípus
+          <select id="templateSelect">
+            <option value="cleaning">Termelés előtti frissítő takarítás</option>
+            <option value="startup">Műszakindítási üzemnapló</option>
+            <option value="temperature">Tárolás és maghőmérséklet ellenőrzés</option>
+          </select>
+        </label>
+
+        <label>
+          Dátum
+          <input id="dateInput" type="date">
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="generateBtn" type="button">Új véletlen adat</button>
+        <button id="printBtn" type="button">Nyomtatás / PDF</button>
+        <button id="downloadDocBtn" type="button">Letöltés Word .doc</button>
+      </div>
+    </section>
+
+    <section class="preview-wrap" aria-label="Dokumentum előnézet">
+      <article id="documentPreview" class="paper"></article>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
