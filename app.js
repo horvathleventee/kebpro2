@@ -61,6 +61,7 @@ const coreTemps = [
 ];
 
 let currentData = null;
+let isLoading = false;
 
 const els = {
   app: document.querySelector(".app-shell"),
@@ -83,6 +84,14 @@ function pad(value) {
 function todayInputValue() {
   const d = new Date();
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function clampDateToToday() {
+  const today = todayInputValue();
+  els.date.max = today;
+  if (!els.date.value || els.date.value > today) {
+    els.date.value = today;
+  }
 }
 
 function formatHuDate(value) {
@@ -111,6 +120,7 @@ function escapeHtml(value) {
 }
 
 function commonMeta() {
+  clampDateToToday();
   return {
     template: els.template.value,
     templateName: templates[els.template.value],
@@ -137,6 +147,14 @@ function generateCleaning() {
   return data;
 }
 
+function generateEmptyCleaning() {
+  const data = commonMeta();
+  data.conditionsReady = "";
+  data.rows = cleaningAreas.map(([area]) => ({ area, result: "", note: "" }));
+  data.noteLabel = "Megjegyzés : az ellenőrzés során feltárt nem – megfelelőség javítási módjának leírása.";
+  return data;
+}
+
 function generateStartup() {
   const data = commonMeta();
   data.rows = startupChecks.map(([area, description]) => {
@@ -153,6 +171,27 @@ function generateStartup() {
     firstIssue: "-------",
     firstEnd: "",
     secondIssue: "--------",
+    secondEnd: "",
+  };
+  data.legend = "M=megfelelt - Az ellenőrzés során nem került feltárásra nem-megfelelőség, akkor az „M”-et pirossal kell jelölni\nN= nem megfelelőség - Az ellenőrzés során nemmegfelelőségvan, akkor az „N”-et pirossal kell jelölni";
+  data.note = "Megjegyzés : az ellenőrzés során feltárt nem – megfelelőség javítási módjának leírása:";
+  return data;
+}
+
+function generateEmptyStartup() {
+  const data = commonMeta();
+  data.rows = startupChecks.map(([area, description]) => ({
+    area,
+    description,
+    first: "",
+    firstNote: "",
+    second: "",
+    secondNote: "",
+  }));
+  data.bandage = {
+    firstIssue: "",
+    firstEnd: "",
+    secondIssue: "",
     secondEnd: "",
   };
   data.legend = "M=megfelelt - Az ellenőrzés során nem került feltárásra nem-megfelelőség, akkor az „M”-et pirossal kell jelölni\nN= nem megfelelőség - Az ellenőrzés során nemmegfelelőségvan, akkor az „N”-et pirossal kell jelölni";
@@ -188,6 +227,33 @@ function generateTemperature() {
   return data;
 }
 
+function generateEmptyTemperature() {
+  const data = commonMeta();
+  data.coldRows = coldRooms.map(([area, requirement]) => ({
+    area,
+    requirement,
+    morning: "",
+    afternoon: "",
+    action: "",
+  }));
+  data.disinfectant = {
+    morning: "",
+    afternoon: "",
+    action: "",
+  };
+  data.coreRows = coreTemps.map(([product, requirement]) => ({
+    product,
+    requirement,
+    time1: "",
+    value1: "",
+    time2: "",
+    value2: "",
+    action: "",
+  }));
+  data.maintenance = "";
+  return data;
+}
+
 function renderHeader(title) {
   return `
     <div class="doc-header">
@@ -209,6 +275,10 @@ function renderChoice(selected) {
       <span class="${selected === "N" ? "status-bad" : ""}">N</span>
     </div>
   `;
+}
+
+function renderTemperatureValue(value) {
+  return value ? `${escapeHtml(value)} °C` : "";
 }
 
 function renderLegend(text) {
@@ -335,12 +405,12 @@ function renderTemperature(data) {
         <tr>
           <td></td>
           <td class="center">8:00</td>
-          ${data.coldRows.map((row) => `<td class="center">${escapeHtml(row.morning)} °C</td>`).join("")}
+          ${data.coldRows.map((row) => `<td class="center">${renderTemperatureValue(row.morning)}</td>`).join("")}
         </tr>
         <tr>
           <td></td>
           <td class="center">15:00</td>
-          ${data.coldRows.map((row) => `<td class="center">${escapeHtml(row.afternoon)} °C</td>`).join("")}
+          ${data.coldRows.map((row) => `<td class="center">${renderTemperatureValue(row.afternoon)}</td>`).join("")}
         </tr>
         <tr>
           <td colspan="${data.coldRows.length + 2}">Intézkedés, helyesbítő tevékenység nem megfelelőség esetében: gépház ellenőrzése / karbantartó értesítése</td>
@@ -361,9 +431,9 @@ function renderTemperature(data) {
       <tbody>
         <tr>
           <td>Min. 82 °C</td>
-          <td class="center">${data.disinfectant.morning} °C</td>
-          <td class="center">${data.disinfectant.afternoon} °C</td>
-          <td>Intézkedés, helyesbítő tevékenység nem megfelelőség esetében. Karbantartó értesítése, hőfok beállítása.</td>
+          <td class="center">${renderTemperatureValue(data.disinfectant.morning)}</td>
+          <td class="center">${renderTemperatureValue(data.disinfectant.afternoon)}</td>
+          <td>${data.disinfectant.action ? "Intézkedés, helyesbítő tevékenység nem megfelelőség esetében. Karbantartó értesítése, hőfok beállítása." : ""}</td>
         </tr>
       </tbody>
     </table>
@@ -387,9 +457,9 @@ function renderTemperature(data) {
             <td>${escapeHtml(row.product)}</td>
             <td>${escapeHtml(row.requirement)}</td>
             <td class="center">${escapeHtml(row.time1)}</td>
-            <td class="center">${escapeHtml(row.value1)} °C</td>
+            <td class="center">${renderTemperatureValue(row.value1)}</td>
             <td class="center">${escapeHtml(row.time2)}</td>
-            <td class="center">${escapeHtml(row.value2)} °C</td>
+            <td class="center">${renderTemperatureValue(row.value2)}</td>
             <td>${escapeHtml(row.action)}</td>
           </tr>
         `).join("")}
@@ -409,12 +479,42 @@ function generate() {
   render();
 }
 
+function setBlankDocument() {
+  const selected = els.template.value;
+  if (selected === "cleaning") currentData = generateEmptyCleaning();
+  if (selected === "startup") currentData = generateEmptyStartup();
+  if (selected === "temperature") currentData = generateEmptyTemperature();
+  render();
+}
+
+function setLoading(loading) {
+  isLoading = loading;
+  els.preview.classList.toggle("is-loading", loading);
+  els.generate.disabled = loading;
+  els.template.disabled = loading;
+  els.date.disabled = loading;
+  els.print.disabled = loading;
+  els.downloadDoc.disabled = loading;
+  els.generate.textContent = loading ? "Lekérdezés folyamatban..." : "Lekérdezés az adatbázisból";
+}
+
+function queryDatabase() {
+  setLoading(true);
+  window.setTimeout(() => {
+    generate();
+    setLoading(false);
+  }, 2400);
+}
+
 function render() {
   if (!currentData) return;
   els.preview.dataset.template = currentData.template;
   if (currentData.template === "cleaning") els.preview.innerHTML = renderCleaning(currentData);
   if (currentData.template === "startup") els.preview.innerHTML = renderStartup(currentData);
   if (currentData.template === "temperature") els.preview.innerHTML = renderTemperature(currentData);
+  if (isLoading) {
+    els.preview.classList.add("is-loading");
+  }
 }
 
 function downloadBlob(filename, type, content) {
@@ -459,13 +559,17 @@ function downloadDoc() {
   downloadBlob(`${safeFileBase()}.doc`, "application/msword;charset=utf-8", html);
 }
 
-els.generate.addEventListener("click", generate);
-els.template.addEventListener("change", generate);
-els.date.addEventListener("change", generate);
+els.generate.addEventListener("click", queryDatabase);
+els.template.addEventListener("change", setBlankDocument);
+els.date.addEventListener("change", () => {
+  clampDateToToday();
+  setBlankDocument();
+});
 els.print.addEventListener("click", () => window.print());
 els.downloadDoc.addEventListener("click", downloadDoc);
 
 els.date.value = todayInputValue();
+clampDateToToday();
 function unlockApp() {
   els.loginScreen.classList.add("hidden");
   els.app.classList.remove("locked");
@@ -511,4 +615,4 @@ els.loginForm.addEventListener("submit", async (event) => {
   els.loginError.hidden = false;
   els.password.select();
 });
-generate();
+setBlankDocument();

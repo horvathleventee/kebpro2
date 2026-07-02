@@ -169,12 +169,64 @@ button:first-child {
 }
 
 .paper {
+  position: relative;
   width: 1123px;
   min-height: 794px;
   margin: 0 auto;
   padding: 28px 32px;
   background: var(--paper);
   box-shadow: 0 8px 30px rgba(24, 34, 45, 0.22);
+}
+
+.paper.is-loading::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.paper.is-loading::after {
+  content: "Adatok lekérdezése...";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  min-width: 220px;
+  padding: 54px 18px 18px;
+  color: #263442;
+  background: #ffffff;
+  border: 1px solid #c7cdd4;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(24, 34, 45, 0.18);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.paper.is-loading {
+  pointer-events: none;
+}
+
+.paper.is-loading .doc-title::before {
+  content: "";
+  position: absolute;
+  top: calc(50% - 28px);
+  left: calc(50% - 13px);
+  z-index: 4;
+  width: 26px;
+  height: 26px;
+  border: 3px solid #d6dbe1;
+  border-top-color: #ff4a00;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .doc-header {
