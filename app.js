@@ -7,8 +7,13 @@ const templates = {
 const PASSWORD_HASH = "48e67ab8284c0ec1b126e67644f0a90212e03019e2676d887a8c25b3a69865f4";
 const AUTH_KEY = "kebproGeneratorAuthenticated";
 
+const plants = {
+  kotonyi: "Kötönyi út",
+  szegedi: "Szegedi út",
+};
+
 const people = {
-  leader: ["Fekete Roland"],
+  leader: ["Fekete Roland", "Rékasi Balázs"],
   quality: ["Gazdag Pálma"],
   operator: ["Fekete Roland"],
 };
@@ -60,6 +65,29 @@ const coreTemps = [
   ["Fagyasztott termékek", "-18 °C és alacsonyabb hőmérséklet", -24.0, -18.0],
 ];
 
+const szegediColdTimes = ["8:00", "10:00", "12:00", "14:00", "16:00"];
+const szegediCoreTimes = ["8:00", "10:00", "12:00", "14:00", "16:00"];
+
+const szegediColdRooms = [
+  ["Szegedi út csomagoló", "+12°C és alacsonyabb hőmérséklet", 8.2, 12.0],
+  ["Szegedi út gyorsfagyasztó", "-20°C és alacsonyabb hőmérséklet", -28.0, -20.0],
+  ["Szegedi út közlekedő folyosó", "+12°C és alacsonyabb hőmérséklet", 8.4, 12.0],
+  ["Szegedi út Alapanyag hűtőtároló 1", "-2°C - +4°C", 0.0, 3.9],
+  ["Szegedi út Alapanyag hűtőtároló 2", "-2°C - +4°C", 0.0, 3.9],
+  ["Szegedi út fagyasztótároló", "-18°C és alacsonyabb hőmérséklet", -24.0, -18.0],
+  ["Szegedi út fűszerezett félkész termék tároló", "-2°C - +4°C", 0.0, 3.9],
+  ["Szegedi út sült fkt hűtőtároló", "-2°C - +4°C", 0.0, 3.9],
+  ["Szegedi út 3-as kat. melléktároló", "+12°C és alacsonyabb hőmérséklet", 8.0, 12.0],
+  ["Szegedi út fagyasztótároló 2.", "-18°C és alacsonyabb hőmérséklet", -24.0, -18.0],
+];
+
+const szegediCoreColumns = [
+  ["Alapanyag", "Húsok: -2°C - +4°C", 0.0, 3.9],
+  ["Sült termék", "Min. +72 °C", 72.0, 78.5],
+  ["Csomagolás előtti sült termék", "+4°C alatti hőmérséklet", 0.2, 3.8],
+  ["Fagyasztott termékek", "-18°C és alacsonyabb hőmérséklet", -24.0, -18.0],
+];
+
 let currentData = null;
 let isLoading = false;
 
@@ -70,6 +98,8 @@ const els = {
   password: document.querySelector("#passwordInput"),
   loginError: document.querySelector("#loginError"),
   template: document.querySelector("#templateSelect"),
+  plant: document.querySelector("#plantSelect"),
+  leader: document.querySelector("#leaderSelect"),
   date: document.querySelector("#dateInput"),
   preview: document.querySelector("#documentPreview"),
   generate: document.querySelector("#generateBtn"),
@@ -126,7 +156,9 @@ function commonMeta() {
     templateName: templates[els.template.value],
     date: els.date.value,
     dateHu: formatHuDate(els.date.value),
-    leader: randomItem(people.leader),
+    plant: els.plant.value,
+    plantName: plants[els.plant.value],
+    leader: els.leader.value,
     quality: randomItem(people.quality),
     operator: randomItem(people.operator),
     generatedAt: new Date().toISOString(),
@@ -254,6 +286,49 @@ function generateEmptyTemperature() {
   return data;
 }
 
+function generateSzegediTemperature() {
+  const data = commonMeta();
+  data.plantTemplate = "szegedi";
+  data.coldTimes = [...szegediColdTimes];
+  data.coldRows = szegediColdRooms.map(([area, requirement, min, max]) => ({
+    area,
+    requirement,
+    values: data.coldTimes.map(() => numberHu(randomBetween(min, max))),
+  }));
+  data.disinfectant = {
+    values: data.coldTimes.map(() => numberHu(randomBetween(82, 88))),
+  };
+  data.coreColumns = szegediCoreColumns.map(([product, requirement]) => ({ product, requirement }));
+  data.coreRows = szegediCoreTimes.map((time) => ({
+    values: szegediCoreColumns.map(([, , min, max]) => ({
+      time,
+      value: numberHu(randomBetween(min, max)),
+    })),
+  }));
+  data.maintenance = "Karbantartás, helyesbítő tevékenység nem vált szükségessé.";
+  return data;
+}
+
+function generateEmptySzegediTemperature() {
+  const data = commonMeta();
+  data.plantTemplate = "szegedi";
+  data.coldTimes = [...szegediColdTimes];
+  data.coldRows = szegediColdRooms.map(([area, requirement]) => ({
+    area,
+    requirement,
+    values: data.coldTimes.map(() => ""),
+  }));
+  data.disinfectant = {
+    values: data.coldTimes.map(() => ""),
+  };
+  data.coreColumns = szegediCoreColumns.map(([product, requirement]) => ({ product, requirement }));
+  data.coreRows = szegediCoreTimes.map((time) => ({
+    values: szegediCoreColumns.map(() => ({ time, value: "" })),
+  }));
+  data.maintenance = "";
+  return data;
+}
+
 function renderHeader(title) {
   return `
     <div class="doc-header">
@@ -269,12 +344,7 @@ function renderLines(lines) {
 }
 
 function renderChoice(selected) {
-  return `
-    <div class="choice-stack">
-      <span class="${selected === "M" ? "status-ok" : ""}">M</span>
-      <span class="${selected === "N" ? "status-bad" : ""}">N</span>
-    </div>
-  `;
+  return `<div class="choice-stack"><span class="${selected === "M" ? "status-ok" : ""}">M</span></div>`;
 }
 
 function renderTemperatureValue(value) {
@@ -383,6 +453,7 @@ function renderTemperature(data) {
     <h2 class="doc-title">Alapanyag, elősütött és késztermék tárolás ellenőrzés</h2>
     <div class="title-block">
       <p><strong>Dátum:</strong> ${data.dateHu}</p>
+      <p><strong>Üzem:</strong> ${escapeHtml(data.plantName)}</p>
       <p><strong>Ellenőrzést végezte:</strong> ${escapeHtml(data.operator)}</p>
       <p><strong>Üzemvezető:</strong> ${escapeHtml(data.leader)}</p>
     </div>
@@ -471,11 +542,81 @@ function renderTemperature(data) {
   `;
 }
 
+function renderSzegediTemperature(data) {
+  const coolingAction = "Intézkedés, helyesbítő tevékenység nem megfelelőség esetében: gépház ellenőrzése / karbantartó értesítése";
+  const disinfectionAction = "Intézkedés, helyesbítő tevékenység nem megfelelőség esetében: karbantartó értesítése, hőfok beállítása.";
+  return `
+    ${renderHeader("FRISS, ELŐSÜTÖTT ÉS GYORSFAGYASZTOTT TERMÉK TÁROLÁS ÉS ELLENŐRZÉS")}
+    <div class="title-block compact-meta">
+      <p><strong>Dátum:</strong> ${data.dateHu}</p>
+      <p><strong>Üzem:</strong> ${escapeHtml(data.plantName)}</p>
+      <p><strong>Üzemvezető:</strong> ${escapeHtml(data.leader)}</p>
+    </div>
+
+    <table class="szegedi-cold-matrix">
+      <thead>
+        <tr><th colspan="${data.coldRows.length + 1}">Hűtött terek hőmérséklete</th></tr>
+        <tr>
+          <th>Ellenőrzés ideje</th>
+          ${data.coldRows.map((row) => `<th>${escapeHtml(row.area)}</th>`).join("")}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td></td>
+          ${data.coldRows.map((row) => `<td><strong>Követelmény</strong><br>${escapeHtml(row.requirement)}</td>`).join("")}
+        </tr>
+        <tr>
+          <td></td>
+          ${data.coldRows.map(() => `<td class="tiny-cell">${coolingAction}</td>`).join("")}
+        </tr>
+        ${data.coldTimes.map((time, index) => `
+          <tr>
+            <td class="center"><strong>${escapeHtml(time)}</strong></td>
+            ${data.coldRows.map((row) => `<td class="center">${renderTemperatureValue(row.values[index])}</td>`).join("")}
+          </tr>
+        `).join("")}
+        <tr>
+          <td colspan="${data.coldRows.length + 1}" class="center"><strong>Eszközfertőtlenítő hőmérséklet °C (követelmény min. 82 °C)</strong></td>
+        </tr>
+        <tr>
+          <td colspan="${data.coldRows.length + 1}" class="tiny-cell center">${disinfectionAction}</td>
+        </tr>
+        <tr>
+          <td><strong>Ellenőrzés ideje:</strong></td>
+          ${data.disinfectant.values.map((value, index) => `<td class="center"><strong>${escapeHtml(data.coldTimes[index])}</strong><br>${renderTemperatureValue(value)}</td>`).join("")}
+          ${Array.from({ length: Math.max(0, data.coldRows.length - data.disinfectant.values.length) }, () => `<td></td>`).join("")}
+        </tr>
+      </tbody>
+    </table>
+
+    <table class="szegedi-core-matrix">
+      <thead>
+        <tr><th colspan="${data.coreColumns.length * 2}">Késztermék és alapanyag maghőmérsékletek</th></tr>
+        <tr>${data.coreColumns.map((column) => `<th colspan="2">${escapeHtml(column.product)}</th>`).join("")}</tr>
+        <tr>${data.coreColumns.map((column) => `<td colspan="2"><strong>Követelmény</strong><br>${escapeHtml(column.requirement)}</td>`).join("")}</tr>
+        <tr>${data.coreColumns.map((column, index) => `<td colspan="2" class="tiny-cell">${index === data.coreColumns.length - 1 ? "Intézkedés, helyesbítő tevékenység nem megfelelőség esetében: művezető értesítése, a termék fagyasztása -18°C-ig" : "Intézkedés, helyesbítő tevékenység nem megfelelőség esetében: üzemvezető értesítése, a termék hőkezelése az előírt maghőmérsékletig."}</td>`).join("")}</tr>
+        <tr>${data.coreColumns.map(() => `<th>Ellenőrzés ideje</th><th>Maghőmérséklet (°C)</th>`).join("")}</tr>
+      </thead>
+      <tbody>
+        ${data.coreRows.map((row) => `
+          <tr>${row.values.map((item) => `<td class="center">${escapeHtml(item.time)}</td><td class="center">${renderTemperatureValue(item.value)}</td>`).join("")}</tr>
+        `).join("")}
+        <tr><td colspan="${data.coreColumns.length * 2}"><strong>Karbantartás, helyesbítő tevékenység leírása:</strong> ${escapeHtml(data.maintenance)}</td></tr>
+        <tr>
+          <td colspan="4"><strong>Dátum:</strong> ${data.dateHu}</td>
+          <td colspan="${data.coreColumns.length * 2 - 4}"><strong>Üzemvezető:</strong> ${escapeHtml(data.leader)}</td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+}
+
 function generate() {
   const selected = els.template.value;
   if (selected === "cleaning") currentData = generateCleaning();
   if (selected === "startup") currentData = generateStartup();
-  if (selected === "temperature") currentData = generateTemperature();
+  if (selected === "temperature") currentData = els.plant.value === "szegedi" ? generateSzegediTemperature() : generateTemperature();
   render();
 }
 
@@ -483,7 +624,7 @@ function setBlankDocument() {
   const selected = els.template.value;
   if (selected === "cleaning") currentData = generateEmptyCleaning();
   if (selected === "startup") currentData = generateEmptyStartup();
-  if (selected === "temperature") currentData = generateEmptyTemperature();
+  if (selected === "temperature") currentData = els.plant.value === "szegedi" ? generateEmptySzegediTemperature() : generateEmptyTemperature();
   render();
 }
 
@@ -492,6 +633,8 @@ function setLoading(loading) {
   els.preview.classList.toggle("is-loading", loading);
   els.generate.disabled = loading;
   els.template.disabled = loading;
+  els.plant.disabled = loading;
+  els.leader.disabled = loading;
   els.date.disabled = loading;
   els.print.disabled = loading;
   els.downloadDoc.disabled = loading;
@@ -509,9 +652,11 @@ function queryDatabase() {
 function render() {
   if (!currentData) return;
   els.preview.dataset.template = currentData.template;
+  els.preview.dataset.plant = currentData.plant || "";
   if (currentData.template === "cleaning") els.preview.innerHTML = renderCleaning(currentData);
   if (currentData.template === "startup") els.preview.innerHTML = renderStartup(currentData);
-  if (currentData.template === "temperature") els.preview.innerHTML = renderTemperature(currentData);
+  if (currentData.template === "temperature" && currentData.plant === "szegedi") els.preview.innerHTML = renderSzegediTemperature(currentData);
+  if (currentData.template === "temperature" && currentData.plant !== "szegedi") els.preview.innerHTML = renderTemperature(currentData);
   if (isLoading) {
     els.preview.classList.add("is-loading");
   }
@@ -555,12 +700,17 @@ function downloadDoc() {
     .subhead-row td{text-align:center;font-weight:700}.legend-row td{font-size:5.1px;line-height:1.05}
     .large-note-row td{height:11mm;min-height:0;vertical-align:top;font-size:5.6px;line-height:1.05}.large-note-row br{display:none}
     .temperature-matrix th,.temperature-matrix td{font-size:6.1px;padding:.55mm .75mm;line-height:1.02}
+    .szegedi-cold-matrix th,.szegedi-cold-matrix td{font-size:5px;padding:.35mm .45mm;line-height:1.02}
+    .szegedi-core-matrix th,.szegedi-core-matrix td{font-size:5.2px;padding:.4mm .5mm;line-height:1.03}
+    .tiny-cell{font-size:4.5px;line-height:1.02}.compact-meta{display:flex;gap:6mm;margin-bottom:1mm}
   </style></head><body><article class="paper">${els.preview.innerHTML}</article></body></html>`;
   downloadBlob(`${safeFileBase()}.doc`, "application/msword;charset=utf-8", html);
 }
 
 els.generate.addEventListener("click", queryDatabase);
 els.template.addEventListener("change", setBlankDocument);
+els.plant.addEventListener("change", setBlankDocument);
+els.leader.addEventListener("change", setBlankDocument);
 els.date.addEventListener("change", () => {
   clampDateToToday();
   setBlankDocument();
