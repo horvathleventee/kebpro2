@@ -12,6 +12,11 @@ const plants = {
   szegedi: "Szegedi út",
 };
 
+const plantHuNumbers = {
+  kotonyi: "HU 1439 EK",
+  szegedi: "HU 899 EK",
+};
+
 const people = {
   leader: ["Fekete Roland", "Rékasi Balázs"],
   quality: ["Gazdag Pálma"],
@@ -158,6 +163,7 @@ function commonMeta() {
     dateHu: formatHuDate(els.date.value),
     plant: els.plant.value,
     plantName: plants[els.plant.value],
+    huNumber: plantHuNumbers[els.plant.value],
     leader: els.leader.value,
     quality: randomItem(people.quality),
     operator: randomItem(people.operator),
@@ -329,12 +335,12 @@ function generateEmptySzegediTemperature() {
   return data;
 }
 
-function renderHeader(title) {
+function renderHeader(title, huNumber = "HU 1439 EK") {
   return `
     <div class="doc-header">
       <div>Halasi Kebpro Kft.</div>
       <div>${escapeHtml(title)}</div>
-      <div>HU 1439 EK</div>
+      <div>${escapeHtml(huNumber)}</div>
     </div>
   `;
 }
@@ -388,7 +394,7 @@ function renderCleaning(data) {
 
 function renderStartup(data) {
   return `
-    ${renderHeader("Műszakindítási üzemnapló")}
+    ${renderHeader("Műszakindítási üzemnapló", data.huNumber)}
     <div class="title-block">
       <p><strong>Műszaki indítás ideje:</strong> ${data.dateHu}</p>
       <p><strong>Műszak indítást ellenőrizte:</strong> üzemvezető (${escapeHtml(data.leader)})</p>
@@ -449,7 +455,7 @@ function renderStartup(data) {
 
 function renderTemperature(data) {
   return `
-    ${renderHeader("Alapanyag, elősütött és késztermék tárolás ellenőrzés")}
+    ${renderHeader("Alapanyag, elősütött és késztermék tárolás ellenőrzés", data.huNumber)}
     <h2 class="doc-title">Alapanyag, elősütött és késztermék tárolás ellenőrzés</h2>
     <div class="title-block">
       <p><strong>Dátum:</strong> ${data.dateHu}</p>
@@ -546,7 +552,7 @@ function renderSzegediTemperature(data) {
   const coolingAction = "Intézkedés, helyesbítő tevékenység nem megfelelőség esetében: gépház ellenőrzése / karbantartó értesítése";
   const disinfectionAction = "Intézkedés, helyesbítő tevékenység nem megfelelőség esetében: karbantartó értesítése, hőfok beállítása.";
   return `
-    ${renderHeader("FRISS, ELŐSÜTÖTT ÉS GYORSFAGYASZTOTT TERMÉK TÁROLÁS ÉS ELLENŐRZÉS")}
+    ${renderHeader("FRISS, ELŐSÜTÖTT ÉS GYORSFAGYASZTOTT TERMÉK TÁROLÁS ÉS ELLENŐRZÉS", data.huNumber)}
     <div class="title-block compact-meta">
       <p><strong>Dátum:</strong> ${data.dateHu}</p>
       <p><strong>Üzem:</strong> ${escapeHtml(data.plantName)}</p>
